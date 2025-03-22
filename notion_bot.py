@@ -1,4 +1,3 @@
-import re
 import requests
 import time
 
@@ -15,6 +14,8 @@ headers = {
 }
 
 processed_messages = set()
+MINIMUM_NOTION_LINE = 1
+LAST_NOTION_BLOCK = -2
 
 
 def get_latest_text(response_prefix=None, message_prefix=None):
@@ -24,8 +25,8 @@ def get_latest_text(response_prefix=None, message_prefix=None):
     response = requests.get(NOTION_API_URL, headers=headers)
     data = response.json()
 
-    if "results" in data and len(data["results"]) > 1:
-        last_block = data["results"][-2]
+    if "results" in data and len(data["results"]) > MINIMUM_NOTION_LINE:
+        last_block = data["results"][LAST_NOTION_BLOCK]
         if last_block["type"] == "paragraph":
             text_content = last_block["paragraph"]["rich_text"]
             if text_content:
@@ -34,7 +35,8 @@ def get_latest_text(response_prefix=None, message_prefix=None):
                     return None, None, None
                 else:
                     if message_prefix and message.startswith(message_prefix):
-                        message = message[4:].strip()
+                        message_start = len(message_prefix)
+                        message = message[message_start:].strip()
                     next_block_index = data["results"].index(last_block) + 1
                     if next_block_index < len(data["results"]):
                         next_block = data["results"][next_block_index]
